@@ -1,0 +1,30 @@
+# ServiceMonitors for self-monitoring
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: prometheus-operator
+  namespace: monitoring
+  labels:
+    team: frontend
+spec:
+  selector:
+    matchLabels:
+      app: prometheus-operator
+  endpoints:
+  - port: http
+    path: /metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: grafana
+  namespace: monitoring
+  labels:
+    team: frontend
+spec:
+  selector:
+    matchLabels:
+      app: grafana
+  endpoints:
+  - port: http
+    path: /metrics
