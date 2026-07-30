@@ -12,3 +12,12 @@
     - --loglevel=info
     - --zap-time-encoding=epoch
     - --enable-partial-cache=true
+- op: replace
+  path: /spec/template/spec/containers/0/readinessProbe
+  value:
+    httpGet:
+      path: /readyz
+      port: 8081
+    initialDelaySeconds: 20
+    periodSeconds: 30
+    failureThreshold: 10
