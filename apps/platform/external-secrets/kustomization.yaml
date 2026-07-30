@@ -3,3 +3,8 @@ kind: Kustomization
 namespace: external-secrets
 resources:
 - https://github.com/external-secrets/external-secrets/releases/download/v0.10.0/external-secrets.yaml
+patches:
+- target:
+    kind: Deployment
+    name: external-secrets-cert-controller
+  path: patch-cert-controller.yaml
