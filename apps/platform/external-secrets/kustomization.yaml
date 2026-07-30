@@ -8,3 +8,7 @@ patches:
     kind: Deployment
     name: external-secrets-cert-controller
   path: patch-cert-controller.yaml
+- target:
+    kind: Deployment
+    name: external-secrets-webhook
+  path: patch-webhook.yaml
