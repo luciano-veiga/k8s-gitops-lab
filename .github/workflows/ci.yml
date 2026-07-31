@@ -1,60 +1,50 @@
 name: CI
-
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Install kustomize
         run: |
           curl -sLO "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz"
           tar xzf kustomize_v5.4.3_linux_amd64.tar.gz
           sudo mv kustomize /usr/local/bin/
-
-      - name: Validate Kustomize builds
+      - name: Validate Kustomize builds and manifests (kubeconform)
         run: |
+          mkdir -p /tmp/rendered
           for dir in apps/bootstrap/* apps/platform/* apps/argocd-appset apps/root; do
-            echo "Validating $dir"
-            kustomize build "$dir" > /dev/null
+            name=$(echo "$dir" | tr '/' '-')
+            echo "Building $dir"
+            kustomize build "$dir" > "/tmp/rendered/${name}.yaml"
           done
-
+          echo "Validating rendered manifests"
+          docker run --rm -v "/tmp/rendered:/manifests" ghcr.io/yannh/kubeconform:v0.6.7 -strict -ignore-missing-schemas /manifests
       - name: Check YAML syntax
         run: |
           find . -name "*.yaml" -o -name "*.yml" | xargs yamllint -c .yamllint.yml || true
-
-      - name: Validate Kubernetes manifests (kubeconform)
-        run: |
-          docker run --rm -v "${PWD}:/manifests" ghcr.io/yannh/kubeconform:v0.6.7 -strict -ignore-missing-schemas /manifests/apps
-
   test-kind:
     runs-on: ubuntu-latest
     needs: validate
     if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
-
       - name: Create Kind cluster
         uses: helm/kind-action@v1.10.0
         with:
           config: kind-config.yaml
-
       - name: Install ArgoCD
         run: |
           kubectl create namespace argocd
           kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
           kubectl wait --for=condition=available --timeout=300s deployment/argocd-server -n argocd
-
       - name: Apply Root Application
         run: |
           kubectl apply -f apps/root/application.yaml
-
       - name: Wait for sync
         run: |
           sleep 30
